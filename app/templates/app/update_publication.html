@@ -1,0 +1,21 @@
+<!-- app/templates/app/update_publication.html -->
+{% extends 'app/base.html' %}
+
+{% block title %}Редактировать публикацию - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Редактировать торговую идею</h1>
+    </div>
+    <form method="post" class="publication-form">
+        {% csrf_token %}
+        <!-- ... здесь форма, аналогично create_publication.html ... -->
+        {{ form.as_p }}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+            <a href="{% url 'publication_detail' publication.pk %}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

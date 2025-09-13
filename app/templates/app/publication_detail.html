@@ -1,0 +1,56 @@
+<!-- app/templates/app/publication_detail.html -->
+{% extends 'app/base.html' %}
+
+{% block title %}{{ publication.description|truncatewords:5 }} - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <article class="publication-card large-card">
+        <div class="publication-header">
+            <div class="author-info">
+                <div class="author-avatar">{{ publication.author.username|first|upper }}</div>
+                <div class="author-details">
+                    <a href="{% url 'user_profile' publication.author.username %}" class="author-name-link">
+                        <div class="author-name">@{{ publication.author.username }}</div>
+                    </a>
+                    <div class="publication-date">{{ publication.created_at|date:"d.m.Y в H:i" }}</div>
+                </div>
+            </div>
+            <div class="publication-meta">
+                <div class="publication-status status-{{ publication.status|lower }}">
+                    {{ publication.get_status_display }}
+                </div>
+            </div>
+        </div>
+
+        <div class="publication-content">
+            <p class="publication-description">{{ publication.description|linebreaks }}</p>
+
+            {% if publication.screenshot_id %}
+            <div class="publication-image">
+                <!-- Здесь может быть логика для отображения изображения из URL или ID -->
+                <img src="{{ publication.screenshot_id }}" alt="График к идее" onerror="this.style.display='none'">
+            </div>
+            {% endif %}
+
+            <!-- Trading Levels -->
+        </div>
+
+        <div class="publication-footer">
+            <div class="publication-actions">
+                <button class="action-btn boost-btn {% if user in publication.boosts.all %}boosted{% endif %}" data-pub-id="{{ publication.pk }}">
+                    <span class="boost-icon">🚀</span>
+                    <span class="boost-count">{{ publication.boosts.count }}</span>
+                    <span class="action-label">Буст</span>
+                </button>
+            </div>
+            {% if user == publication.author or perms.app.change_publication %}
+            <div class="publication-management">
+                <a href="{% url 'update_publication' publication.pk %}" class="btn btn-secondary btn-small">Редактировать</a>
+                <a href="{% url 'delete_publication' publication.pk %}" class="btn btn-danger btn-small">Удалить</a>
+            </div>
+            {% endif %}
+        </div>
+    </article>
+</div>
+{% endblock %}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TradeHub{% endblock %}</title>
+    {% load static %}
+    <!-- Подключаем стили и шрифты -->
+    <link rel="stylesheet" href="{% static 'app/css/styles.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="{% url 'home' %}">TradeHub</a>
+            </div>
+
+            {% if user.is_authenticated %}
+            <div class="nav-user">
+                <div class="notification-bell" id="notification-bell" aria-haspopup="true" aria-expanded="false">
+                    <button id="notification-button" class="bell-button" aria-label="Открыть уведомления">
+                        <span class="bell-icon">🔔</span>
+                        <span class="notification-count" id="notification-count" style="display: none;">0</span>
+                    </button>
+
+                    <div class="notification-dropdown" id="notification-dropdown" aria-hidden="true">
+                        <div class="notification-header">
+                            Уведомления
+                            <a href="{% url 'notifications' %}" class="small-link">Все</a>
+                        </div>
+                        <div id="notification-list">
+                            <!-- Сюда будет подгружаться список уведомлений через JS -->
+                        </div>
+                        <div class="notification-footer">
+                            <a href="{% url 'notifications' %}">Открыть страницу уведомлений</a>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{% url 'profile' %}" class="nav-link user-profile-link" title="Профиль">
+                    <div class="author-avatar small-avatar">{{ user.username|first|upper }}</div>
+                    <span>@{{ user.username }}</span>
+                </a>
+
+                <a href="{% url 'menu' %}" class="nav-btn-icon" title="Меню">☰</a>
+                <a href="{% url 'logout' %}" class="nav-link" title="Выйти">Выйти</a>
+            </div>
+            {% else %}
+            <div class="nav-auth">
+                <a href="{% url 'login' %}" class="nav-btn">Войти</a>
+                <a href="{% url 'register' %}" class="nav-btn nav-btn-primary">Регистрация</a>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                {% if 'welcome' not in message.tags %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="welcome-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="close-welcome-modal" role="button" aria-label="Закрыть">&times;</span>
+            <h2>Добро пожаловать в TradeHub!</h2>
+            <p>Мы рады видеть вас в нашем сообществе. Прежде чем начать, рекомендуем ознакомиться с нашими обучающими материалами.</p>
+            <a href="{% url 'education' %}" class="btn btn-primary">Перейти к обучению</a>
+        </div>
+    </div>
+
+    {# Подготавливаем URL'ы в переменные шаблона для использования в JS #}
+    {% url 'get_notifications_api' as GET_NOTIFICATIONS_API_URL %}
+    {% url 'api_unread_notifications_count' as UNREAD_NOTIFICATIONS_COUNT_API_URL %}
+    {% url 'mark_notification_read_api' 0 as MARK_NOTIFICATION_READ_API_URL_BASE %}
+    {% url 'toggle_boost_api' 0 as TOGGLE_BOOST_API_URL_BASE %}
+    {% url 'publication_detail' 0 as PUBLICATION_DETAIL_URL_BASE %}
+    {% url 'notifications' as NOTIFICATIONS_PAGE_URL %}
+    {% url 'profile' as PROFILE_PAGE_URL %}
+    {% url 'login' as LOGIN_URL %}
+    {% url 'register' as REGISTER_URL %}
+    {% url 'logout' as LOGOUT_URL %}
+    {% url 'education' as EDUCATION_URL %}
+    {% url 'home' as HOME_URL %}
+
+    <script>
+        // Define a global namespace and context variables safely
+        window.TradeHub = window.TradeHub || {};
+
+        // This prevents a syntax error if the template tag renders an empty string
+        const USER_IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === 'true';
+
+        // API endpoints and page URLs (escapejs for safety)
+        const NOTIFICATIONS_API_URL = "{{ GET_NOTIFICATIONS_API_URL|escapejs }}";
+        const UNREAD_NOTIFICATIONS_COUNT_API_URL = "{{ UNREAD_NOTIFICATIONS_COUNT_API_URL|escapejs }}";
+        // MARK_NOTIFICATION_READ_API_URL_BASE contains a URL with pk=0, e.g. "/api/notifications/mark-read/0/"
+        const MARK_NOTIFICATION_READ_API_URL_BASE = "{{ MARK_NOTIFICATION_READ_API_URL_BASE|escapejs }}";
+        // TOGGLE_BOOST_API_URL_BASE contains a URL with pk=0, e.g. "/api/toggle-boost/0/"
+        const TOGGLE_BOOST_API_URL_BASE = "{{ TOGGLE_BOOST_API_URL_BASE|escapejs }}";
+        // Base URL to open a publication detail (pk=0 -> replace 0 with actual id in JS)
+        const PUBLICATION_DETAIL_URL_BASE = "{{ PUBLICATION_DETAIL_URL_BASE|escapejs }}";
+
+        const NOTIFICATIONS_PAGE_URL = "{{ NOTIFICATIONS_PAGE_URL|escapejs }}";
+        const PROFILE_PAGE_URL = "{{ PROFILE_PAGE_URL|escapejs }}";
+        const LOGIN_URL = "{{ LOGIN_URL|escapejs }}";
+        const REGISTER_URL = "{{ REGISTER_URL|escapejs }}";
+        const LOGOUT_URL = "{{ LOGOUT_URL|escapejs }}";
+        const EDUCATION_URL = "{{ EDUCATION_URL|escapejs }}";
+        const HOME_URL = "{{ HOME_URL|escapejs }}";
+
+        // CSRF token (will be provided by Django)
+        const CSRF_TOKEN = "{{ csrf_token|escapejs }}";
+    </script>
+
+    <script src="{% static 'app/js/main.js' %}"></script>
+
+    {# Если есть сообщение с тегом 'welcome', показываем модалку после загрузки main.js #}
+    {% for message in messages %}
+        {% if 'welcome' in message.tags %}
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    if (window.TradeHub && typeof window.TradeHub.showWelcomeModal === 'function') {
+                        TradeHub.showWelcomeModal();
+                    } else {
+                        // fallback: покажем простой модал вручную
+                        const modal = document.getElementById('welcome-modal');
+                        if (modal) modal.style.display = 'block';
+                    }
+                });
+            </script>
+        {% endif %}
+    {% endfor %}
+</body>
+</html>

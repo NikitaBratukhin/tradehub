@@ -1,0 +1,25 @@
+{% extends 'app/base.html' %}
+{% block title %}Обучение - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">🎓 Обучающие материалы</h1>
+        <p class="page-subtitle">База знаний для начинающих и опытных трейдеров</p>
+    </div>
+
+    <div class="content-grid">
+        {% for material in materials %}
+        <a href="{% url 'education_detail' material.pk %}" class="content-card">
+            <h3 class="content-card-title">{{ material.title }}</h3>
+            <p class="content-card-meta">Опубликовано: {{ material.created_at|date:"d.m.Y" }}</p>
+        </a>
+        {% empty %}
+        <div class="empty-state">
+            <h3>Материалы пока не добавлены</h3>
+            <p>Скоро здесь появится много полезной информации.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

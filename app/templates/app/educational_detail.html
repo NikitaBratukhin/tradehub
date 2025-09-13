@@ -1,0 +1,17 @@
+{% extends 'app/base.html' %}
+{% block title %}{{ object.title }} - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container content-detail-container">
+    <h1 class="page-title">{{ object.title }}</h1>
+    <p class="page-subtitle">Опубликовано: {{ object.created_at|date:"d.m.Y в H:i" }}</p>
+
+    <div class="content-body">
+        {{ object.content|linebreaks }}
+    </div>
+
+    <div class="back-link">
+        <a href="{% url 'education_list' %}" class="btn btn-secondary">‹ Назад к списку</a>
+    </div>
+</div>
+{% endblock %}

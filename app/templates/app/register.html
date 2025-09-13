@@ -1,0 +1,77 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Регистрация - TradeHub{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Регистрация</h1>
+            <p>Присоединяйтесь к сообществу трейдеров</p>
+        </div>
+
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+
+            <div class="form-group">
+                {{ form.username.label_tag }}
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="form-errors">{{ form.username.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.first_name.label_tag }}
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                    <div class="form-errors">{{ form.first_name.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.email.label_tag }}
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="form-errors">{{ form.email.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.password1.label_tag }}
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                    <div class="form-errors">{{ form.password1.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.password2.label_tag }}
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                    <div class="form-errors">{{ form.password2.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.telegram_id.label_tag }}
+                {{ form.telegram_id }}
+                {% if form.telegram_id.help_text %}
+                    <small class="form-help">{{ form.telegram_id.help_text }}</small>
+                {% endif %}
+                {% if form.telegram_id.errors %}
+                    <div class="form-errors">{{ form.telegram_id.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="auth-btn">Создать аккаунт</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Уже есть аккаунт? <a href="{% url 'login' %}" class="auth-link">Войдите</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

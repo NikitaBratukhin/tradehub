@@ -1,0 +1,188 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Создать публикацию - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="create-publication-container">
+        <div class="page-header">
+            <h1 class="page-title">Создать торговую идею</h1>
+            <p class="page-subtitle">Поделитесь своим анализом и торговыми уровнями с сообществом</p>
+        </div>
+
+        <form method="post" class="publication-form">
+            {% csrf_token %}
+
+            <div class="form-section">
+                <h3 class="section-title">Описание идеи</h3>
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <div class="form-errors">{{ form.description.errors }}</div>
+                    {% endif %}
+                    <div class="form-help">Опишите свой анализ, обоснование входа и общую стратегию</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.screenshot_id.id_for_label }}">{{ form.screenshot_id.label }}</label>
+                    {{ form.screenshot_id }}
+                    {% if form.screenshot_id.errors %}
+                    <div class="form-errors">{{ form.screenshot_id.errors }}</div>
+                    {% endif %}
+                    <div class="form-help">Укажите ID скриншота из Telegram или URL изображения</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="section-title">Торговые уровни</h3>
+                <div class="levels-grid">
+                    <div class="form-group">
+                        <label for="{{ form.target_1.id_for_label }}">{{ form.target_1.label }} <span class="required">*</span></label>
+                        {{ form.target_1 }}
+                        {% if form.target_1.errors %}
+                        <div class="form-errors">{{ form.target_1.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.target_2.id_for_label }}">{{ form.target_2.label }}</label>
+                        {{ form.target_2 }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.target_3.id_for_label }}">{{ form.target_3.label }}</label>
+                        {{ form.target_3 }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.stop_loss.id_for_label }}">{{ form.stop_loss.label }} <span class="required">*</span></label>
+                        {{ form.stop_loss }}
+                        {% if form.stop_loss.errors %}
+                        <div class="form-errors">{{ form.stop_loss.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="form-help">Укажите минимум одну цель и обязательно стоп-лосс</div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <span class="btn-icon">✍️</span>
+                    Опубликовать идею
+                </button>
+                <a href="{% url 'publications' %}" class="btn btn-secondary btn-lg">Отмена</a>
+            </div>
+        </form>
+
+        <!-- Превью публикации -->
+        <div class="publication-preview">
+            <h3 class="preview-title">Предварительный просмотр</h3>
+            <div class="publication-card preview-card">
+                <div class="publication-header">
+                    <div class="author-info">
+                        <div class="author-avatar">{{ user.username|first|upper }}</div>
+                        <div class="author-details">
+                            <div class="author-name">@{{ user.username }}</div>
+                            <div class="publication-date">Сейчас</div>
+                        </div>
+                    </div>
+                    <div class="publication-rating">
+                        <span class="stars">⭐ 0.0</span>
+                    </div>
+                </div>
+
+                <div class="publication-content">
+                    <p class="publication-description" id="preview-description">Введите описание...</p>
+
+                    <div class="trading-levels">
+                        <div class="levels-header">
+                            <h4>Торговые уровни</h4>
+                        </div>
+                        <div class="levels-grid">
+                            <div class="level target">
+                                <span class="level-label">🎯 Цель 1</span>
+                                <span class="level-value" id="preview-target1">—</span>
+                            </div>
+                            <div class="level target" id="preview-target2-container" style="display: none;">
+                                <span class="level-label">🎯 Цель 2</span>
+                                <span class="level-value" id="preview-target2">—</span>
+                            </div>
+                            <div class="level target" id="preview-target3-container" style="display: none;">
+                                <span class="level-label">🎯 Цель 3</span>
+                                <span class="level-value" id="preview-target3">—</span>
+                            </div>
+                            <div class="level stop-loss">
+                                <span class="level-label">❌ Стоп-лосс</span>
+                                <span class="level-value" id="preview-stop">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="publication-footer">
+                    <div class="publication-actions">
+                        <button class="action-btn boost-btn" disabled>
+                            <span class="boost-icon">🚀</span>
+                            <span class="boost-count">0</span>
+                            <span class="action-label">Буст</span>
+                        </button>
+                        <button class="action-btn comment-btn" disabled>
+                            <span class="comment-icon">💬</span>
+                            <span class="comment-count">0</span>
+                            <span class="action-label">Комментарии</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Обновление превью в реальном времени
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.publication-form');
+    const previewDescription = document.getElementById('preview-description');
+    const previewTarget1 = document.getElementById('preview-target1');
+    const previewTarget2 = document.getElementById('preview-target2');
+    const previewTarget3 = document.getElementById('preview-target3');
+    const previewStop = document.getElementById('preview-stop');
+    const previewTarget2Container = document.getElementById('preview-target2-container');
+    const previewTarget3Container = document.getElementById('preview-target3-container');
+
+    // Обновление описания
+    form.description.addEventListener('input', function() {
+        previewDescription.textContent = this.value || 'Введите описание...';
+    });
+
+    // Обновление целей
+    form.target_1.addEventListener('input', function() {
+        previewTarget1.textContent = this.value || '—';
+    });
+
+    form.target_2.addEventListener('input', function() {
+        if (this.value) {
+            previewTarget2.textContent = this.value;
+            previewTarget2Container.style.display = 'flex';
+        } else {
+            previewTarget2Container.style.display = 'none';
+        }
+    });
+
+    form.target_3.addEventListener('input', function() {
+        if (this.value) {
+            previewTarget3.textContent = this.value;
+            previewTarget3Container.style.display = 'flex';
+        } else {
+            previewTarget3Container.style.display = 'none';
+        }
+    });
+
+    // Обновление стоп-лосса
+    form.stop_loss.addEventListener('input', function() {
+        previewStop.textContent = this.value || '—';
+    });
+});
+</script>
+{% endblock %}

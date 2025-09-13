@@ -1,0 +1,11 @@
+# requirements.txt
+Django>=4.2
+djangorestframework
+django-cors-headers
+python-telegram-bot>=20.0
+requests
+mssql-django  # Драйвер для MS SQL Server
+channels
+channels-redis
+Pillow
+daphne

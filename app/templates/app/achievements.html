@@ -1,0 +1,32 @@
+{% extends 'app/base.html' %}
+{% block title %}Достижения - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">🏅 Все Достижения</h1>
+        <p class="page-subtitle">Зарабатывайте рейтинг и признание, выполняя цели на платформе</p>
+    </div>
+
+    <div class="achievements-grid">
+        {% for achievement in all_achievements %}
+        <div class="achievement-card {% if achievement.id in user_achievements_ids %}unlocked{% endif %}">
+            <div class="achievement-icon">{{ achievement.icon }}</div>
+            <h3 class="achievement-name">{{ achievement.name }}</h3>
+            <p class="achievement-description">{{ achievement.description }}</p>
+            <div class="achievement-points">+{{ achievement.rating_points }} очков</div>
+            {% if achievement.id in user_achievements_ids %}
+                <div class="achievement-unlocked-status">
+                    <span>Получено</span>
+                </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <h3>Достижения скоро появятся</h3>
+            <p>Мы работаем над добавлением новых интересных задач.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

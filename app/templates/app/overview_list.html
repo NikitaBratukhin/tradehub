@@ -1,0 +1,25 @@
+{% extends 'app/base.html' %}
+{% block title %}Обзоры рынка - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">📊 Обзоры рынка</h1>
+        <p class="page-subtitle">Ежедневный анализ и важные новости от наших экспертов</p>
+    </div>
+
+    <div class="content-grid">
+        {% for overview in overviews %}
+        <a href="{% url 'overview_detail' overview.pk %}" class="content-card">
+            <h3 class="content-card-title">{{ overview.title }}</h3>
+            <p class="content-card-meta">Опубликовано: {{ overview.created_at|date:"d.m.Y" }}</p>
+        </a>
+        {% empty %}
+        <div class="empty-state">
+            <h3>Обзоры пока не добавлены</h3>
+            <p>Следите за обновлениями!</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

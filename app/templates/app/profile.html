@@ -1,0 +1,70 @@
+<!-- app/templates/app/profile.html -->
+{% extends 'app/base.html' %}
+
+{% block title %}
+    Профиль {% if user_profile.username != user.username %}@{{ user_profile.username }}{% endif %} - TradeHub
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="profile-container">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar">{{ user_profile.username|first|upper }}</div>
+                <div class="profile-info">
+                    <h1 class="profile-name">
+                        {% if profile.first_name %}{{ profile.first_name }}{% else %}@{{ user_profile.username }}{% endif %}
+                        <span class="profile-username">@{{ user_profile.username }}</span>
+                    </h1>
+                    <div class="profile-stats">
+                        <div class="stat">
+                            <span class="stat-value">{{ profile.rating_score }}</span>
+                            <span class="stat-label">✨ Рейтинг</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">{{ user_publications.count }}</span>
+                            <span class="stat-label">✍️ Публикаций</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">{{ user_achievements.count }}</span>
+                            <span class="stat-label">🏆 Достижений</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if user_profile == user %}
+            <div class="profile-actions">
+                <a href="{% url 'profile_settings' %}" class="btn btn-secondary">Настройки</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="profile-section">
+            <h2 class="section-title">Торговые идеи {% if user_profile.username == user.username %}мои{% else %}пользователя @{{ user_profile.username }}{% endif %}</h2>
+            {% if user_publications %}
+            <div class="publications-grid">
+                {% for pub in user_publications %}
+                <div class="publication-card">
+                    <p class="publication-description">{{ pub.description|truncatewords:15 }}</p>
+                    <div class="publication-footer">
+                        <a href="{% url 'publication_detail' pub.pk %}" class="publication-date">Подробнее...</a>
+                        {% if pub.author == user %}
+                        <div class="publication-management">
+                            <a href="{% url 'update_publication' pub.pk %}" class="btn btn-small btn-outline">Ред.</a>
+                            <a href="{% url 'delete_publication' pub.pk %}" class="btn btn-small btn-danger">Удал.</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>У пользователя пока нет публикаций.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,44 @@
+{% extends 'app/base.html' %}
+{% block title %}Настройки профиля - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">⚙️ Настройки профиля</h1>
+        <p class="page-subtitle">Управляйте вашими личными данными и настройками приватности</p>
+    </div>
+
+    <div class="auth-card" style="max-width: 700px; margin: 0 auto;">
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="{{ form.first_name.id_for_label }}">Имя</label>
+                {{ form.first_name }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.last_name.id_for_label }}">Фамилия</label>
+                {{ form.last_name }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.age.id_for_label }}">Возраст</label>
+                {{ form.age }}
+            </div>
+
+            <div class="form-group form-check">
+                {{ form.is_private }}
+                <label for="{{ form.is_private.id_for_label }}">Сделать профиль приватным</label>
+            </div>
+
+            <div class="form-group form-check">
+                {{ form.browser_notifications_enabled }}
+                <label for="{{ form.browser_notifications_enabled.id_for_label }}">Включить push-уведомления в браузере</label>
+            </div>
+
+            <button type="submit" class="auth-btn">Сохранить изменения</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+<!-- app/templates/app/publications.html -->
+{% extends 'app/base.html' %}
+
+{% block title %}Лента публикаций - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="publications-container">
+        <div class="publications-header">
+            <h1 class="page-title">Лента торговых идей</h1>
+            <div class="publications-controls">
+                <div class="filter-buttons">
+                    <a href="?filter=recent" class="filter-btn {% if request.GET.filter != 'trending' %}active{% endif %}">Новые</a>
+                    <a href="?filter=trending" class="filter-btn {% if request.GET.filter == 'trending' %}active{% endif %}">Популярные</a>
+                </div>
+                {% if user.is_authenticated and 'Trader' in user.groups.all.0.name %}
+                <a href="{% url 'create_publication' %}" class="btn btn-primary">
+                    <span class="btn-icon">✍️</span>
+                    Создать идею
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if publications %}
+        <div class="publications-feed">
+            {% for pub in publications %}
+            <article class="publication-card">
+                <div class="publication-header">
+                    <div class="author-info">
+                        <div class="author-avatar">{{ pub.author.username|first|upper }}</div>
+                        <div class="author-details">
+                            <a href="{% url 'user_profile' pub.author.username %}" class="author-name-link">
+                                <div class="author-name">@{{ pub.author.username }}</div>
+                            </a>
+                            <div class="publication-date">{{ pub.created_at|date:"d.m.Y в H:i" }}</div>
+                        </div>
+                    </div>
+                    <div class="publication-meta">
+                        <div class="publication-status status-{{ pub.status|lower }}">
+                            {{ pub.get_status_display }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="publication-content">
+                    <p class="publication-description">{{ pub.description }}</p>
+                    <!-- Trading Levels... -->
+                </div>
+
+                <div class="publication-footer">
+                    <div class="publication-actions">
+                        <button class="action-btn boost-btn">
+                            <span class="boost-icon">🚀</span>
+                            <span class="boost-count">{{ pub.boosts.count }}</span>
+                            <span class="action-label">Буст</span>
+                        </button>
+                    </div>
+                    <div class="publication-stats">
+                        <span class="stat-item" title="Просмотры">👁️ {{ pub.views }}</span>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h3>Публикаций пока нет</h3>
+            <p>Станьте первым, кто поделится торговой идеей</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

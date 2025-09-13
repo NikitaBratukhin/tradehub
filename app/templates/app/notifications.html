@@ -1,0 +1,34 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+<div class="container">
+  <h1>Уведомления</h1>
+
+  <div class="notifications-list">
+    {% if notifications %}
+      <ul class="list-unstyled">
+        {% for n in notifications %}
+          <li class="notification-item {% if not n.is_read %}unread{% endif %}" data-id="{{ n.id }}">
+            <div>
+              <strong>{{ n.title }}</strong>
+              <small class="text-muted"> — {{ n.created_at|date:"d.m.Y H:i" }}</small>
+            </div>
+            <div>{{ n.message }}</div>
+            {% if n.link %}
+              <div><a href="{{ n.link }}">Перейти</a></div>
+            {% endif %}
+            {% if not n.is_read %}
+              <form method="post" action="{% url 'mark_notification_read_api' n.id %}" class="mark-read-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-primary">Отметить как прочитанное</button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>У вас пока нет уведомлений.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

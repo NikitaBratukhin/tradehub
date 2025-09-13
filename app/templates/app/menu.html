@@ -1,0 +1,79 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Меню - TradeHub{% endblock %}
+
+{% block content %}
+<div class="menu-container">
+    <div class="menu-grid">
+        <a href="{% url 'home' %}" class="menu-item">
+            <span class="menu-icon">🏠</span>
+            <span class="menu-title">Главная</span>
+        </a>
+        <a href="{% url 'publications' %}" class="menu-item">
+            <span class="menu-icon">📰</span>
+            <span class="menu-title">Лента идей</span>
+        </a>
+        <a href="{% url 'create_publication' %}" class="menu-item">
+            <span class="menu-icon">✍️</span>
+            <span class="menu-title">Создать идею</span>
+        </a>
+        <a href="{% url 'chat' %}" class="menu-item">
+            <span class="menu-icon">💬</span>
+            <span class="menu-title">Общий чат</span>
+        </a>
+        <a href="{% url 'leaderboard' %}" class="menu-item">
+            <span class="menu-icon">🏆</span>
+            <span class="menu-title">Лидерборд</span>
+        </a>
+         <a href="{% url 'achievements' %}" class="menu-item">
+            <span class="menu-icon">🏅</span>
+            <span class="menu-title">Достижения</span>
+        </a>
+
+        <!-- Исправлено: используем name='education' -->
+        <a href="{% url 'education' %}" class="menu-item">
+            <span class="menu-icon">🎓</span>
+            <span class="menu-title">Обучение</span>
+        </a>
+
+        <!-- Исправлено: используем name='market_overview' -->
+        <a href="{% url 'market_overview' %}" class="menu-item">
+            <span class="menu-icon">📊</span>
+            <span class="menu-title">Обзоры рынка</span>
+        </a>
+
+        <a href="{% url 'profile' %}" class="menu-item">
+            <span class="menu-icon">👤</span>
+            <span class="menu-title">Мой профиль</span>
+        </a>
+        <a href="{% url 'profile_settings' %}" class="menu-item">
+            <span class="menu-icon">⚙️</span>
+            <span class="menu-title">Настройки</span>
+        </a>
+
+        <a href="{% url 'notifications' %}" class="menu-item">
+            <span class="menu-icon">🔔</span>
+            <span class="menu-title">Уведомления</span>
+        </a>
+
+        <a href="{% url 'logout' %}" class="menu-item">
+            <span class="menu-icon">🚪</span>
+            <span class="menu-title">Выйти</span>
+        </a>
+    </div>
+</div>
+
+<style>
+/* Вспомогательные стили, можно вынести в CSS */
+.menu-container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.menu-item {
+    display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 10px;
+    background: var(--card-bg, #0f172a); color: var(--text, #fff); text-decoration: none;
+    transition: transform .12s ease, box-shadow .12s ease; box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.menu-item:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.menu-icon { font-size: 1.3rem; } .menu-title { font-weight: 600; }
+</style>
+{% endblock %}

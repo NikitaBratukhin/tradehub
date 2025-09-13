@@ -1,0 +1,66 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Лидерборд - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">🏆 Лидерборд</h1>
+        <p class="page-subtitle">Топ участников по очкам рейтинга</p>
+    </div>
+
+    <div class="leaderboard-container">
+        <div class="leaderboard-header">
+            <div class="leaderboard-col rank">#</div>
+            <div class="leaderboard-col user">Участник</div>
+            <div class="leaderboard-col rating">Рейтинг</div>
+        </div>
+
+        {% for profile in profiles %}
+        <div class="leaderboard-row">
+            <div class="leaderboard-col rank">
+                {% if page_obj.number == 1 %}
+                    {{ forloop.counter }}
+                {% else %}
+                    {{ page_obj.start_index|add:forloop.counter0 }}
+                {% endif %}
+            </div>
+            <div class="leaderboard-col user">
+                <div class="author-info">
+                    <div class="author-avatar">{{ profile.user.username|first|upper }}</div>
+                    <span class="author-name">@{{ profile.user.username }}</span>
+                </div>
+            </div>
+            <div class="leaderboard-col rating">
+                <span class="rating-score">{{ profile.rating_score }} ✨</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <p>Пока никто не заработал очков рейтинга. Станьте первым!</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <div class="pagination">
+        <div class="pagination-controls">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="pagination-btn">&laquo; Первая</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="pagination-btn">‹ Назад</a>
+            {% endif %}
+
+            <span class="pagination-current">
+                Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="pagination-btn">Вперед ›</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="pagination-btn">Последняя &raquo;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
