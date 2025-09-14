@@ -1,0 +1,17 @@
+{# app/templates/app/partials/js_vars.html #}
+<script type="text/javascript">
+    // CSRF-токен для POST-запросов
+    const CSRF_TOKEN = "{{ csrf_token }}";
+
+    // Текущий пользователь
+    const CURRENT_USER = {
+        is_authenticated: {{ user.is_authenticated|yesno:"true,false" }},
+        username: "{{ user.username|default:'' }}"
+    };
+
+    // URL'ы для API
+    const TOGGLE_BOOST_API_URL_BASE = "{% url 'toggle_boost_api' pk=0 %}";
+    const MARK_NOTIFICATION_READ_API_URL_BASE = "{% url 'mark_notification_read_api' pk=0 %}";
+    const NOTIFICATIONS_API_URL = "{% url 'get_notifications_api' %}";
+    const UNREAD_NOTIFICATIONS_COUNT_API_URL = "{% url 'api_unread_notifications_count' %}";
+</script>

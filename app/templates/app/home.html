@@ -1,146 +1,16 @@
 {% extends 'app/base.html' %}
-
-{% block title %}Главная - TradeHub{% endblock %}
+{% block title %}Профессиональное сообщество трейдеров - TradeHub{% endblock %}
 
 {% block content %}
-<!-- Герой секция -->
-<section class="hero">
-    <div class="hero-content">
-        <div class="hero-text">
-            <h1 class="hero-title">Добро пожаловать в <span class="text-purple">TradeHub</span></h1>
-            <p class="hero-subtitle">Профессиональное сообщество трейдеров. Делитесь идеями, получайте рейтинг, развивайтесь вместе с лучшими.</p>
-
-            {% if not user.is_authenticated %}
-            <div class="hero-actions">
-                <a href="{% url 'register' %}" class="btn btn-primary btn-lg">Присоединиться</a>
-                <a href="{% url 'login' %}" class="btn btn-secondary btn-lg">Войти</a>
-            </div>
-            {% else %}
-            <div class="hero-actions">
-                <a href="{% url 'create_publication' %}" class="btn btn-primary btn-lg">Создать идею</a>
-                <a href="{% url 'publications' %}" class="btn btn-secondary btn-lg">Смотреть ленту</a>
-            </div>
-            {% endif %}
+<div class="container">
+    <section class="hero">
+        <h1 class="hero-title">Профессиональное сообщество для <span class="text-purple">трейдеров</span></h1>
+        <p class="hero-subtitle">Делитесь идеями, получайте рейтинг и развивайтесь вместе с лучшими.</p>
+        <div class="hero-actions">
+            <a href="{% url 'register' %}" class="btn btn-primary btn-lg">Присоединиться</a>
+            <a href="{% url 'login' %}" class="btn btn-secondary btn-lg">Войти</a>
         </div>
+    </section>
 
-        <div class="hero-stats">
-            <div class="stat-card">
-                <div class="stat-number">{{ total_users }}</div>
-                <div class="stat-label">Трейдеров</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ total_publications }}</div>
-                <div class="stat-label">Идей</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">4.8</div>
-                <div class="stat-label">Рейтинг</div>
-            </div>
-        </div>
     </div>
-</section>
-
-<!-- Последние публикации -->
-{% if publications %}
-<section class="recent-publications">
-    <div class="container">
-        <h2 class="section-title">Последние торговые идеи</h2>
-        <div class="publications-grid">
-            {% for pub in publications %}
-            <div class="publication-card">
-                <div class="publication-header">
-                    <div class="author-info">
-                        <div class="author-avatar">{{ pub.author.username|first|upper }}</div>
-                        <div class="author-details">
-                            <div class="author-name">@{{ pub.author.username }}</div>
-                            <div class="publication-date">{{ pub.created_at|date:"d.m.Y H:i" }}</div>
-                        </div>
-                    </div>
-                    <div class="publication-rating">
-                        <span class="stars">⭐ 0.0</span>
-                    </div>
-                </div>
-
-                <div class="publication-content">
-                    <p class="publication-description">{{ pub.description|truncatewords:20 }}</p>
-
-                    <div class="trading-levels">
-                        <div class="level target">
-                            <span class="level-label">🎯 Цель 1:</span>
-                            <span class="level-value">{{ pub.target_1 }}</span>
-                        </div>
-                        {% if pub.target_2 %}
-                        <div class="level target">
-                            <span class="level-label">🎯 Цель 2:</span>
-                            <span class="level-value">{{ pub.target_2 }}</span>
-                        </div>
-                        {% endif %}
-                        {% if pub.target_3 %}
-                        <div class="level target">
-                            <span class="level-label">🎯 Цель 3:</span>
-                            <span class="level-value">{{ pub.target_3 }}</span>
-                        </div>
-                        {% endif %}
-                        <div class="level stop-loss">
-                            <span class="level-label">❌ Стоп:</span>
-                            <span class="level-value">{{ pub.stop_loss }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="publication-footer">
-                    <button class="btn btn-small btn-outline">Подробнее</button>
-                    <div class="publication-actions">
-                        <button class="action-btn like-btn" title="Поставить лайк">
-                            <span class="boost-icon">🚀</span>
-                            <span class="boost-count">0</span>
-                        </button>
-                        <button class="action-btn comment-btn" title="Комментировать">
-                            <span class="comment-icon">💬</span>
-                            <span class="comment-count">0</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="view-more">
-            <a href="{% url 'publications' %}" class="btn btn-primary">Смотреть все публикации</a>
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Особенности платформы -->
-<section class="features">
-    <div class="container">
-        <h2 class="section-title">Возможности платформы</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">📈</div>
-                <h3 class="feature-title">Торговые идеи</h3>
-                <p class="feature-description">Публикуйте свои сетапы с целями и стоп-лоссами. Получайте рейтинг от сообщества.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">⭐</div>
-                <h3 class="feature-title">Система рейтинга</h3>
-                <p class="feature-description">Оценивайте идеи других трейдеров. Зарабатывайте репутацию качественными публикациями.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">🏆</div>
-                <h3 class="feature-title">Достижения</h3>
-                <p class="feature-description">Получайте награды за активность и качество торговых идей.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">👥</div>
-                <h3 class="feature-title">Сообщество</h3>
-                <p class="feature-description">Общайтесь с единомышленниками, учитесь у опытных трейдеров.</p>
-            </div>
-        </div>
-    </div>
-</section>
 {% endblock %}

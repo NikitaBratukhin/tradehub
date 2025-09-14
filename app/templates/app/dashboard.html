@@ -1,0 +1,36 @@
+{% extends 'app/base.html' %}
+{% block title %}Панель управления - TradeHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Добро пожаловать, @{{ user.username }}!</h1>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-card main-card">
+            <h3>🔔 Уведомление дня</h3>
+            {% if last_overview %}
+                <p>Вышел новый обзор рынка: <a href="{% url 'overview_detail' last_overview.pk %}">{{ last_overview.title }}</a></p>
+            {% else %}
+                <p>Сегодня пока нет важных уведомлений.</p>
+            {% endif %}
+        </div>
+        <div class="dashboard-card">
+            <h3>⭐ Твой рейтинг</h3>
+            <div class="stat-value">{{ user.profile.rating_score }}</div>
+            <a href="{% url 'leaderboard' %}" class="card-link">Смотреть лидерборд</a>
+        </div>
+        <div class="dashboard-card">
+            <h3>📊 Моя статистика</h3>
+            <p>Публикаций: {{ publications_count }}</p>
+            <a href="{% url 'profile' %}" class="card-link">Перейти в профиль</a>
+        </div>
+        <div class="dashboard-card actions-card">
+            <h3>🚀 Быстрые действия</h3>
+            <a href="{% url 'create_publication' %}" class="btn btn-primary">Добавить идею</a>
+            <a href="{% url 'chat' %}" class="btn btn-secondary">Перейти в чат</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

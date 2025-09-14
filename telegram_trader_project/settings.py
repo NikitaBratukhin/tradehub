@@ -39,7 +39,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# ИСПРАВЛЕНИЕ: Изменено с 'tradehub.urls' на 'telegram_trader_project.urls'
 ROOT_URLCONF = 'telegram_trader_project.urls'
 
 TEMPLATES = [
@@ -58,11 +57,11 @@ TEMPLATES = [
     },
 ]
 
-# ИСПРАВЛЕНИЕ: Изменено с 'tradehub.wsgi.application' на 'telegram_trader_project.wsgi.application'
 WSGI_APPLICATION = 'telegram_trader_project.wsgi.application'
 ASGI_APPLICATION = 'telegram_trader_project.asgi.application'
 
 # Database
+# ВОЗВРАЩАЕМ НАСТРОЙКИ ДЛЯ MICROSOFT SQL SERVER
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
@@ -93,6 +92,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+
 # Internationalization
 LANGUAGE_CODE = 'ru-RU'
 TIME_ZONE = 'UTC'
@@ -102,6 +108,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -109,3 +117,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # URL-ы для редиректа после входа и выхода
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
+LOGIN_URL = 'login'

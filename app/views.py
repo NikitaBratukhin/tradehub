@@ -1,18 +1,28 @@
+# app/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.views.generic import ListView, DetailView, TemplateView
+from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseForbidden
-from django.db.models import F, Count
+from django.db.models import F, Count, Sum
 from django.utils import timezone
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-from .forms import CustomUserCreationForm, PublicationForm, ProfileSettingsForm
+from .forms import (
+    CustomUserCreationForm, PublicationForm, ProfileSettingsForm,
+    MarketOverviewForm, EducationalMaterialForm
+)
 from .models import (
     Publication, Profile, ChatMessage, Achievement, UserAchievement,
-    EducationalMaterial, MarketOverview, Notification
+    EducationalMaterial, MarketOverview, Notification, RatingChange, DailyRatingAggregate
 )
+from .serializers import BoostToggleSerializer
 
 
 # === Хелперы для проверки ролей ===
@@ -28,36 +38,51 @@ def is_admin(user):
     return user.is_staff or user.groups.filter(name='Admin').exists()
 
 
+def is_privileged_user(user):
+    return user.is_authenticated and (is_moderator(user) or is_admin(user))
+
+
 # === Основные представления ===
 
 def home_view(request):
-    publications = Publication.objects.filter(status='ACTIVE').select_related('author')[:3]
-    total_users = User.objects.count()
-    total_publications = Publication.objects.count()
-    context = {
-        'publications': publications,
-        'total_users': total_users,
-        'total_publications': total_publications,
-    }
-    return render(request, 'app/home.html', context)
+    if request.user.is_authenticated:
+        # Логика для дашборда
+        last_overview = MarketOverview.objects.order_by('-created_at').first()
+        context = {
+            'last_overview': last_overview,
+            'publications_count': Publication.objects.filter(author=request.user).count(),
+        }
+        return render(request, 'app/dashboard.html', context)
+    else:
+        # Логика для главной страницы
+        publications = Publication.objects.filter(status='ACTIVE').select_related('author')[:3]
+        total_users = User.objects.count()
+        total_publications = Publication.objects.count()
+        context = {
+            'publications': publications,
+            'total_users': total_users,
+            'total_publications': total_publications,
+        }
+        return render(request, 'app/home.html', context)
 
 
-class MenuView(TemplateView):
+class MenuView(LoginRequiredMixin, TemplateView):
     template_name = 'app/menu.html'
 
 
 def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             telegram_id = form.cleaned_data.get('telegram_id')
             if telegram_id:
-                # профиль уже создаётся сигналом post_save
                 user.profile.telegram_id = telegram_id
                 user.profile.save()
             login(request, user)
-            messages.success(request, f'Добро пожаловать в TradeHub, @{user.username}!', tags='welcome')
+            messages.success(request, f'Добро пожаловать в TradeHub, @{user.username}!', extra_tags='welcome')
             return redirect('home')
     else:
         form = CustomUserCreationForm()
@@ -98,12 +123,8 @@ class PublicationDetailView(DetailView):
 
 
 @login_required
-@user_passes_test(is_trader, login_url='home')
+@permission_required('app.can_publish', raise_exception=True)
 def create_publication_view(request):
-    if not request.user.has_perm('app.can_publish'):
-        messages.error(request, 'У вас нет прав для создания публикации.')
-        return redirect('publications')
-
     if request.method == 'POST':
         form = PublicationForm(request.POST)
         if form.is_valid():
@@ -161,26 +182,88 @@ def delete_publication_view(request, pk):
     return render(request, 'app/delete_publication_confirm.html', {'publication': publication})
 
 
-@login_required
+# === API для Бустов, Подписок и Рейтинга ===
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def toggle_boost_view(request, pk):
-    """
-    Ожидает POST. Переключает буст текущего пользователя для публикации pk.
-    Возвращает JSON с новым количеством бустов и состоянием.
-    """
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-
     publication = get_object_or_404(Publication, pk=pk)
     user = request.user
 
-    if user in publication.boosts.all():
+    serializer = BoostToggleSerializer(data=request.data, context={'request': request, 'publication': publication})
+    serializer.is_valid(raise_exception=True)
+
+    if publication.is_boosted_by(user):
         publication.boosts.remove(user)
         boosted = False
     else:
         publication.boosts.add(user)
         boosted = True
-        # уведомление автору создаётся через m2m_changed сигнал в models.py
-    return JsonResponse({'status': 'ok', 'boost_count': publication.boosts.count(), 'boosted': boosted})
+
+    return Response({
+        'status': 'ok',
+        'boost_count': publication.boost_count(),
+        'boosted': boosted
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_follow_view(request, username):
+    if request.method == 'POST':
+        target_user = get_object_or_404(User, username=username)
+        if target_user == request.user:
+            return JsonResponse({'status': 'error', 'message': 'You cannot follow yourself'}, status=400)
+        profile = request.user.profile
+        if target_user in profile.subscribed_to.all():
+            profile.subscribed_to.remove(target_user)
+            following = False
+        else:
+            profile.subscribed_to.add(target_user)
+            following = True
+            Notification.objects.create(
+                user=target_user,
+                title="Новый подписчик",
+                message=f"Пользователь @{request.user.username} подписался на вас.",
+                notification_type=Notification.NotificationTypes.FOLLOW,
+                link=f"/profile/{request.user.username}/"
+            )
+        return JsonResponse({'status': 'ok', 'following': following})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def daily_checkin_api(request):
+    profile = request.user.profile
+    result = profile.handle_daily_checkin()
+    return Response(result)
+
+
+@api_view(['GET'])
+def leaderboard_api(request):
+    period = request.query_params.get('period', 'all')
+    limit = int(request.query_params.get('limit', 50))
+
+    if period == 'all':
+        qs = Profile.objects.select_related('user').order_by('-rating_score')[:limit]
+        data = [{'username': p.user.username, 'rating': int(p.rating_score)} for p in qs]
+        return Response({'period': 'all', 'data': data})
+
+    now = timezone.now()
+    if period == 'week':
+        since = now.date() - timezone.timedelta(days=7)
+    elif period == 'month':
+        since = now.date() - timezone.timedelta(days=30)
+    else:
+        return Response({'detail': 'unsupported period'}, status=400)
+
+    # Используем агрегированные данные для скорости
+    aggregates = DailyRatingAggregate.objects.filter(date__gte=since) \
+                     .values('user__username').annotate(points=Sum('points')).order_by('-points')[:limit]
+
+    data = [{'username': a['user__username'], 'points': int(a['points'])} for a in aggregates]
+
+    return Response({'period': period, 'data': data})
 
 
 # === Профиль ===
@@ -188,18 +271,19 @@ def toggle_boost_view(request, pk):
 @login_required
 def profile_view(request, username=None):
     if username:
-        user = get_object_or_404(User, username=username)
+        user_profile = get_object_or_404(User, username=username)
     else:
-        user = request.user
+        user_profile = request.user
 
-    profile = user.profile
-    user_publications = Publication.objects.filter(author=user)
-    user_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
+    is_following = False
+    if request.user.is_authenticated and request.user != user_profile:
+        is_following = request.user.profile.subscribed_to.filter(pk=user_profile.pk).exists()
+
     context = {
-        'user_profile': user,
-        'profile': profile,
-        'user_publications': user_publications,
-        'user_achievements': user_achievements,
+        'user_profile': user_profile,
+        'user_publications': Publication.objects.filter(author=user_profile),
+        'user_achievements': UserAchievement.objects.filter(user=user_profile).select_related('achievement'),
+        'is_following': is_following,
     }
     return render(request, 'app/profile.html', context)
 
@@ -285,11 +369,95 @@ class LeaderboardView(ListView):
     model = Profile
     template_name = 'app/leaderboard.html'
     context_object_name = 'profiles'
-    paginate_by = 50
+    paginate_by = 25
 
     def get_queryset(self):
         # выбираем профили с присоединёнными пользователями, сортируем по рейтингу
         return Profile.objects.select_related('user').order_by('-rating_score')
+
+
+# === НОВЫЕ ПРЕДСТАВЛЕНИЯ ДЛЯ УПРАВЛЕНИЯ КОНТЕНТОМ ===
+
+class PrivilegedUserMixin(UserPassesTestMixin):
+    """Миксин для проверки, является ли пользователь модератором или админом."""
+    def test_func(self):
+        return is_privileged_user(self.request.user)
+
+
+@login_required
+@user_passes_test(is_privileged_user)
+def create_educational_material_view(request):
+    if request.method == 'POST':
+        form = EducationalMaterialForm(request.POST)
+        if form.is_valid():
+            material = form.save(commit=False)
+            material.author = request.user
+            material.save()
+            messages.success(request, 'Обучающий материал успешно создан.')
+            return redirect('education_detail', pk=material.pk)
+    else:
+        form = EducationalMaterialForm()
+    return render(request, 'app/content_form.html', {'form': form, 'title': 'Создать обучающий материал'})
+
+
+@login_required
+@user_passes_test(is_privileged_user)
+def update_educational_material_view(request, pk):
+    material = get_object_or_404(EducationalMaterial, pk=pk)
+    if request.method == 'POST':
+        form = EducationalMaterialForm(request.POST, instance=material)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Материал успешно обновлен.')
+            return redirect('education_detail', pk=material.pk)
+    else:
+        form = EducationalMaterialForm(instance=material)
+    return render(request, 'app/content_form.html', {'form': form, 'title': 'Редактировать обучающий материал'})
+
+
+class EducationalMaterialDeleteView(LoginRequiredMixin, PrivilegedUserMixin, DeleteView):
+    model = EducationalMaterial
+    template_name = 'app/delete_confirm.html'
+    success_url = reverse_lazy('education_list')
+    extra_context = {'title': 'Удалить обучающий материал'}
+
+
+@login_required
+@user_passes_test(is_privileged_user)
+def create_market_overview_view(request):
+    if request.method == 'POST':
+        form = MarketOverviewForm(request.POST)
+        if form.is_valid():
+            overview = form.save(commit=False)
+            overview.author = request.user
+            overview.save()
+            messages.success(request, 'Обзор рынка успешно создан.')
+            return redirect('overview_detail', pk=overview.pk)
+    else:
+        form = MarketOverviewForm()
+    return render(request, 'app/content_form.html', {'form': form, 'title': 'Создать обзор рынка'})
+
+
+@login_required
+@user_passes_test(is_privileged_user)
+def update_market_overview_view(request, pk):
+    overview = get_object_or_404(MarketOverview, pk=pk)
+    if request.method == 'POST':
+        form = MarketOverviewForm(request.POST, instance=overview)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Обзор успешно обновлен.')
+            return redirect('overview_detail', pk=overview.pk)
+    else:
+        form = MarketOverviewForm(instance=overview)
+    return render(request, 'app/content_form.html', {'form': form, 'title': 'Редактировать обзор рынка'})
+
+
+class MarketOverviewDeleteView(LoginRequiredMixin, PrivilegedUserMixin, DeleteView):
+    model = MarketOverview
+    template_name = 'app/delete_confirm.html'
+    success_url = reverse_lazy('market_overview_list')
+    extra_context = {'title': 'Удалить обзор рынка'}
 
 
 # === Чат ===
@@ -371,21 +539,3 @@ def statistics_view(request):
 
     context = {'stats': stats}
     return render(request, 'app/statistics.html', context)
-
-
-# === API функции для AJAX (другие) ===
-
-@login_required
-def toggle_follow_view(request, username):
-    if request.method == 'POST':
-        target_user = get_object_or_404(User, username=username)
-        # логика подписки
-        profile = request.user.profile
-        if target_user in profile.subscribed_to.all():
-            profile.subscribed_to.remove(target_user)
-            following = False
-        else:
-            profile.subscribed_to.add(target_user)
-            following = True
-        return JsonResponse({'status': 'ok', 'following': following})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)

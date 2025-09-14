@@ -13,6 +13,12 @@ const TradeHub = {
      */
     getCsrfToken() {
         if (typeof CSRF_TOKEN !== 'undefined' && CSRF_TOKEN) return CSRF_TOKEN;
+
+        // Попытка получить из meta-тега
+        const metaToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (metaToken) return metaToken.value;
+
+        // Попытка получить из cookie
         const cookie = document.cookie.match(/csrftoken=([^;]+)/);
         return cookie ? cookie[1] : null;
     },
@@ -25,8 +31,8 @@ const TradeHub = {
      */
     buildUrl(baseUrl, id) {
         if (!baseUrl) return null;
-        // Поддерживаем как '/0/' так и '/0' в конце URL
-        return baseUrl.replace(/\/0(\/?)$/, `/${id}$1`);
+        // Поддерживаем как '/0/' так и '/0' в конце URL, а также просто '0' в любом месте
+        return baseUrl.replace(/\/0(\/?)$/, `/${id}$1`).replace(/\b0\b/, id);
     },
 
     /**
@@ -113,6 +119,8 @@ const TradeHub = {
         // Экспонируем функцию для вызова из шаблона
         this.showWelcomeModal = show;
     },
+
+    // --- Логика Уведомлений --- //
 
     /**
      * Инициализирует систему уведомлений.
@@ -364,8 +372,10 @@ const TradeHub = {
         this.setUnreadCount(current);
     },
 
+    // --- Логика Бустов --- //
+
     /**
-     * Инициализирует логику для кнопок "буста" (лайков).
+     * Инициализирует логику для кнопок "буста" (лайков) с подтверждением.
      */
     initBoostButtons() {
         document.body.addEventListener('click', async (e) => {
@@ -374,6 +384,16 @@ const TradeHub = {
 
             const pubId = button.dataset.pubId;
             if (!pubId) return;
+
+            // Добавлено подтверждение действия
+            const isBoosted = button.classList.contains('boosted');
+            const confirmationMessage = isBoosted
+                ? "Вы уверены, что хотите убрать свой буст?"
+                : "Вы хотите использовать один из своих дневных бустов для этой идеи?";
+
+            if (!confirm(confirmationMessage)) {
+                return;
+            }
 
             button.classList.add('processing');
 
@@ -395,36 +415,47 @@ const TradeHub = {
                     credentials: 'same-origin'
                 });
 
-                if (!response.ok) throw new Error('Network response was not ok');
-
                 const data = await response.json();
 
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Ошибка сети');
+                }
+
                 if (data.status === 'ok') {
-                    const countEl = button.querySelector('.boost-count');
-                    if (countEl && typeof data.boost_count !== 'undefined') {
-                        countEl.textContent = data.boost_count;
-                    }
-
-                    button.classList.toggle('boosted', data.boosted);
-
-                    if (data.boosted) {
-                        button.style.animation = 'boost-effect 0.6s ease-out';
-                        this.createBoostParticles(button);
-                    } else {
-                        button.style.animation = 'unboost-effect 0.3s ease-out';
-                    }
-
-                    button.addEventListener('animationend', () => button.style.animation = '', { once: true });
+                    this.updateBoostButtonUI(button, data);
                 } else {
-                    this.showNotification(data.message || 'Ошибка', 'error');
+                    this.showNotification(data.message || 'Произошла ошибка', 'error');
                 }
             } catch (error) {
                 console.error('Boost error:', error);
-                this.showNotification('Не удалось выполнить действие.', 'error');
+                this.showNotification(error.message, 'error');
             } finally {
                 button.classList.remove('processing');
             }
         });
+    },
+
+    /**
+     * Обновляет состояние и внешний вид кнопки буста.
+     * @param {HTMLElement} button - Элемент кнопки.
+     * @param {object} data - Данные от API { boost_count, boosted }.
+     */
+    updateBoostButtonUI(button, data) {
+        const countEl = button.querySelector('.boost-count');
+        if (countEl && typeof data.boost_count !== 'undefined') {
+            countEl.textContent = data.boost_count;
+        }
+
+        button.classList.toggle('boosted', data.boosted);
+
+        if (data.boosted) {
+            button.style.animation = 'boost-effect 0.6s ease-out';
+            this.createBoostParticles(button);
+        } else {
+            button.style.animation = 'unboost-effect 0.3s ease-out';
+        }
+
+        button.addEventListener('animationend', () => button.style.animation = '', { once: true });
     },
 
     /**
@@ -453,6 +484,65 @@ const TradeHub = {
             setTimeout(() => particle.remove(), 1000);
         }
     },
+
+    // --- Логика Подписок --- //
+
+    /**
+     * Инициализирует кнопку подписки/отписки.
+     */
+    initFollowButton() {
+        const followBtn = document.getElementById('follow-btn');
+        if (!followBtn) return;
+
+        followBtn.addEventListener('click', async () => {
+            const username = followBtn.dataset.username;
+            if (!username) return;
+
+            const url = `/api/user/${username}/toggle-follow/`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': this.getCsrfToken(),
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) throw new Error('Ошибка сети');
+
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    this.updateFollowButtonUI(followBtn, data.following);
+                    const message = data.following ? 'Вы успешно подписались' : 'Вы отписались';
+                    this.showNotification(message, 'success');
+                }
+            } catch (error) {
+                console.error('Follow error:', error);
+                this.showNotification('Не удалось выполнить действие', 'error');
+            }
+        });
+    },
+
+    /**
+     * Обновляет состояние и внешний вид кнопки подписки.
+     * @param {HTMLElement} button - Элемент кнопки.
+     * @param {boolean} isFollowing - Текущий статус подписки.
+     */
+    updateFollowButtonUI(button, isFollowing) {
+        if (isFollowing) {
+            button.textContent = 'Отписаться';
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-secondary');
+        } else {
+            button.textContent = 'Подписаться';
+            button.classList.remove('btn-secondary');
+            button.classList.add('btn-primary');
+        }
+    },
+
+    // --- Прочие Инициализации --- //
 
     /**
      * Инициализирует фильтры публикаций
@@ -748,6 +838,7 @@ const TradeHub = {
         this.initTheme();
         this.initNotifications();
         this.initBoostButtons();
+        this.initFollowButton(); // Добавлен вызов инициализации кнопки подписки
         this.initFilterButtons();
         this.initMobileMenu();
         this.initSmoothScrolling();
